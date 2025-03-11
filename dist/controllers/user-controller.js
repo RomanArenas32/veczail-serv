@@ -18,8 +18,6 @@ const bcrypt_1 = __importDefault(require("bcrypt"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 // Register a new user
 const registerUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log("Request body:", req.body);
-    console.log("first");
     try {
         const { email, password, usuario, nombre, apellido, area } = req.body;
         // Check if user already exists
