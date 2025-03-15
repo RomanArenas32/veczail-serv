@@ -65,13 +65,17 @@ const registerUser = (req, res) => __awaiter(void 0, void 0, void 0, function* (
     }
 });
 exports.registerUser = registerUser;
-// Login user
+//login user  
 const loginUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { usernameOrEmail, password } = req.body;
         // Validar que se proporcionen ambos campos
         if (!usernameOrEmail || !password) {
-            res.status(400).json({ message: 'Username or email and password are required' });
+            res.status(400).json({
+                error: 'Bad Request',
+                message: 'Username or email and password are required',
+                statusCode: 400
+            });
             return;
         }
         // Buscar usuario por email o username
@@ -82,21 +86,28 @@ const loginUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             ]
         });
         if (!user) {
-            res.status(400).json({ message: 'Invalid credentials' });
+            res.status(400).json({
+                error: 'Invalid Credentials',
+                message: 'Invalid username/email or password',
+                statusCode: 400
+            });
             return;
         }
         // Verificar la contraseña
         const isMatch = yield bcrypt_1.default.compare(password, user.password);
         if (!isMatch) {
-            res.status(400).json({ message: 'Invalid credentials' });
+            res.status(400).json({
+                error: 'Invalid Credentials',
+                message: 'Invalid username/email or password',
+                statusCode: 400
+            });
             return;
         }
-        // Crear y enviar token JWT
-        const token = jsonwebtoken_1.default.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
-        // Respuesta exitosa
+        // Crear token JWT
+        const token = jsonwebtoken_1.default.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '12h' });
+        // Respuesta exitosa adaptada al frontend
         res.status(200).json({
-            message: 'Login successful',
-            token,
+            jwt: token, // Cambiamos "token" por "jwt"
             user: {
                 id: user._id,
                 email: user.email,
@@ -110,8 +121,10 @@ const loginUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     }
     catch (error) {
         res.status(500).json({
+            error: 'Internal Server Error',
             message: 'Error logging in',
-            error: error.message
+            statusCode: 500,
+            details: error.message // Opcional, para depuración
         });
     }
 });

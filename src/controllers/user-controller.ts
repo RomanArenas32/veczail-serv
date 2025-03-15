@@ -13,18 +13,15 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
   try {
     const { email, password, usuario, nombre, apellido, area } = req.body;
 
-    // Check if user already exists
     const existingUser = await User.findOne({ $or: [{ email }, { usuario }] });
     if (existingUser) {
       res.status(400).json({ message: 'Email or username already exists' });
       return;
     }
 
-    // Hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Create new user
     const user = new User({
       email,
       password: hashedPassword,
@@ -35,10 +32,8 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
       area
     });
 
-    // Save user
     await user.save();
 
-    // Create and send JWT token
     const token = jwt.sign(
       { id: user._id, role: user.role } as unknown as UserPayload,
       process.env.JWT_SECRET as string,
@@ -66,18 +61,18 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
   }
 };
 
-// Login user
+//login user  
 export const loginUser = async (req: Request, res: Response): Promise<void> => {
   try {
     const { usernameOrEmail, password } = req.body;
-
-    // Validar que se proporcionen ambos campos
     if (!usernameOrEmail || !password) {
-      res.status(400).json({ message: 'Username or email and password are required' });
+      res.status(400).json({
+        error: 'Bad Request',
+        message: 'Username or email and password are required',
+        statusCode: 400
+      });
       return;
     }
-
-    // Buscar usuario por email o username
     const user = await User.findOne({
       $or: [
         { email: usernameOrEmail },
@@ -86,28 +81,30 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
     });
 
     if (!user) {
-      res.status(400).json({ message: 'Invalid credentials' });
+      res.status(400).json({
+        error: 'Invalid Credentials',
+        message: 'Invalid username/email or password',
+        statusCode: 400
+      });
       return;
     }
-
-    // Verificar la contraseña
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      res.status(400).json({ message: 'Invalid credentials' });
+      res.status(400).json({
+        error: 'Invalid Credentials',
+        message: 'Invalid username/email or password',
+        statusCode: 400
+      });
       return;
     }
 
-    // Crear y enviar token JWT
     const token = jwt.sign(
       { id: user._id, role: user.role } as unknown as UserPayload,
       process.env.JWT_SECRET as string,
       { expiresIn: '12h' }
     );
-
-    // Respuesta exitosa
     res.status(200).json({
-      message: 'Login successful',
-      token,
+      jwt: token,
       user: {
         id: user._id,
         email: user.email,
@@ -119,9 +116,11 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
       }
     });
   } catch (error) {
-    res.status(500).json({ 
-      message: 'Error logging in', 
-      error: (error as Error).message 
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: 'Error logging in',
+      statusCode: 500,
+      details: (error as Error).message 
     });
   }
 };
@@ -129,7 +128,6 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
 // Get user profile
 export const getUser = async (req: Request, res: Response): Promise<void> => {
   try {
-    // Assuming user ID is available from JWT middleware
     const userId = (req as Request & { user?: UserPayload }).user?.id;
     
     if (!userId) {
