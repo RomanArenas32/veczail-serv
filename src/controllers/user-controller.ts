@@ -69,29 +69,42 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
 // Login user
 export const loginUser = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { email, password } = req.body;
+    const { usernameOrEmail, password } = req.body;
 
-    // Find user by email
-    const user = await User.findOne({ email });
+    // Validar que se proporcionen ambos campos
+    if (!usernameOrEmail || !password) {
+      res.status(400).json({ message: 'Username or email and password are required' });
+      return;
+    }
+
+    // Buscar usuario por email o username
+    const user = await User.findOne({
+      $or: [
+        { email: usernameOrEmail },
+        { usuario: usernameOrEmail }
+      ]
+    });
+
     if (!user) {
       res.status(400).json({ message: 'Invalid credentials' });
       return;
     }
 
-    // Check password
+    // Verificar la contraseña
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       res.status(400).json({ message: 'Invalid credentials' });
       return;
     }
 
-    // Create and send JWT token
+    // Crear y enviar token JWT
     const token = jwt.sign(
       { id: user._id, role: user.role } as unknown as UserPayload,
       process.env.JWT_SECRET as string,
-      { expiresIn: '1h' }
+      { expiresIn: '12h' }
     );
 
+    // Respuesta exitosa
     res.status(200).json({
       message: 'Login successful',
       token,

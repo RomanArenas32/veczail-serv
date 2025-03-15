@@ -68,21 +68,32 @@ exports.registerUser = registerUser;
 // Login user
 const loginUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { email, password } = req.body;
-        // Find user by email
-        const user = yield user_1.default.findOne({ email });
+        const { usernameOrEmail, password } = req.body;
+        // Validar que se proporcionen ambos campos
+        if (!usernameOrEmail || !password) {
+            res.status(400).json({ message: 'Username or email and password are required' });
+            return;
+        }
+        // Buscar usuario por email o username
+        const user = yield user_1.default.findOne({
+            $or: [
+                { email: usernameOrEmail },
+                { usuario: usernameOrEmail }
+            ]
+        });
         if (!user) {
             res.status(400).json({ message: 'Invalid credentials' });
             return;
         }
-        // Check password
+        // Verificar la contraseña
         const isMatch = yield bcrypt_1.default.compare(password, user.password);
         if (!isMatch) {
             res.status(400).json({ message: 'Invalid credentials' });
             return;
         }
-        // Create and send JWT token
+        // Crear y enviar token JWT
         const token = jsonwebtoken_1.default.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        // Respuesta exitosa
         res.status(200).json({
             message: 'Login successful',
             token,
