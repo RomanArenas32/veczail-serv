@@ -67,6 +67,7 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
     const { usernameOrEmail, password } = req.body;
     if (!usernameOrEmail || !password) {
       res.status(400).json({
+        ok: false,
         error: 'Bad Request',
         message: 'Username or email and password are required',
         statusCode: 400
@@ -82,6 +83,7 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
 
     if (!user) {
       res.status(400).json({
+        ok: false,
         error: 'Invalid Credentials',
         message: 'Invalid username/email or password',
         statusCode: 400
@@ -91,6 +93,7 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       res.status(400).json({
+        ok: false,
         error: 'Invalid Credentials',
         message: 'Invalid username/email or password',
         statusCode: 400
@@ -104,6 +107,7 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
       { expiresIn: '12h' }
     );
     res.status(200).json({
+      ok: true,
       jwt: token,
       user: {
         id: user._id,
@@ -117,6 +121,7 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
     });
   } catch (error) {
     res.status(500).json({
+      ok: false,
       error: 'Internal Server Error',
       message: 'Error logging in',
       statusCode: 500,
